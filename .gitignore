@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Local editor files
+.vscode/
+.idea/
+.DS_Store
+
+# Secrets
+.env
+.streamlit/secrets.toml
+
+# Databases and personal finance data
+data/
+*.db
+*.sqlite
+*.sqlite3
+*.csv
+*.xlsx
+exports/
+uploads/
