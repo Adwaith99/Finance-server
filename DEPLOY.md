@@ -80,9 +80,4 @@ Workflow for future updates
 - On home server: `git pull` to get changes, then restart the app/service. The local DB remains untouched.
 
 If you want, I can:
-- Remove the tracked DB from git index and commit that change now.
 - Add a small helper script to import a CSV automatically if placed at `/var/data/import.csv` on the home server.
-
-Which of the two actions would you like me to do now?
-- A) Remove the DB from git index now and commit, or
-- B) Also add an auto-import script that runs once if `/var/data/import.csv` exists.
