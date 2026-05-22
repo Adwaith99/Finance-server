@@ -10,7 +10,7 @@ def test_prepare_import_dataframe_accepts_raw_csv_columns() -> None:
         [
             {
                 "Date": "invalid date",
-                "Description": "Dominos dinner ",
+                "Description": "cafe ",
                 "Envelope": "Eating out ",
                 "Amount": "23.19",
                 "Type (Income/Expense)": "Expense",
