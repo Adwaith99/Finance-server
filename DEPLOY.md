@@ -73,16 +73,7 @@ streamlit run expense_tracker/app.py
 6. First-time import alternative
 - If you prefer to place a CSV on the home server and let the app import, copy the CSV to the home server and use the Import page in the Streamlit UI to run the import. That will create/import into the DB located at `EXPENSE_TRACKER_DB`.
 
-Notes about git history and private data
-- `.gitignore` will prevent new DB files from being added, but it does not remove the DB from prior commits. If the DB is already present in Git history (it was in an earlier commit), remove it from the index now and consider running a history rewrite (BFG or git filter-branch) if you plan to push the repo to a public remote and must purge the DB from history.
-- To remove the DB from the index (leaves it on disk, untracked):
 
-```bash
-git rm --cached expense_tracker/expense_tracker.db
-git commit -m "Remove DB from repo and ignore it"
-```
-
-If you want me to rewrite history to strip the DB from all commits, I can provide commands (note: destructive to history; coordinate carefully).
 
 Workflow for future updates
 - Make code changes locally, commit, and push to your remote (or copy the updated repo to the home server).

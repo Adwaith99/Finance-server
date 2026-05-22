@@ -12,13 +12,13 @@ def test_prepare_import_dataframe_accepts_raw_csv_columns() -> None:
                 "Date": "invalid date",
                 "Description": "cafe ",
                 "Envelope": "Eating out ",
-                "Amount": "23.19",
+                "Amount": "12.50",
                 "Type (Income/Expense)": "Expense",
-                "Month": "July",
-                "Signed Amount": "-23.19",
-                "Cumulative": "23.19",
+                "Month": "April",
+                "Signed Amount": "-12.50",
+                "Cumulative": "12.50",
                 "Slope": "4.6",
-                "ParsedDate": "7/28/2025",
+                "ParsedDate": "4/1/2026",
             },
             {
                 "Date": "",
@@ -26,8 +26,8 @@ def test_prepare_import_dataframe_accepts_raw_csv_columns() -> None:
                 "Envelope": "",
                 "Amount": "",
                 "Type (Income/Expense)": "",
-                "Month": "July total",
-                "Signed Amount": "-23.19",
+                "Month": "April total",
+                "Signed Amount": "-12.50",
                 "Cumulative": "",
                 "Slope": "",
                 "ParsedDate": "",
@@ -39,8 +39,8 @@ def test_prepare_import_dataframe_accepts_raw_csv_columns() -> None:
 
     assert len(cleaned) == 1
     row = cleaned.iloc[0]
-    assert row["description"] == "Dominos dinner"
+    assert row["description"] == "Example Cafe"
     assert row["category"] == "Eating out"
-    assert row["month"] == "July"
-    assert row["parsed_date"] == "2025-07-28"
-    assert row["signed_amount"] == -23.19
+    assert row["month"] == "April"
+    assert row["parsed_date"] == "2026-04-01"
+    assert row["signed_amount"] == -12.50
