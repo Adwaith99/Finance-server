@@ -197,10 +197,10 @@ def daily_spending_trend_for_month(
         expenses = expenses.loc[expenses["month_period"] == month_period]
     if expenses.empty:
         return _empty_figure("No expense transactions for the selected month")
-    grouped = expenses.groupby(expenses["parsed_date"].dt.date, as_index=False)[
-        "spend_amount"
-    ].sum()
-    grouped.columns = ["date", "spend_amount"]
+    grouped = (
+        expenses.assign(date=expenses["parsed_date"].dt.date)
+        .groupby("date", as_index=False)["spend_amount"].sum()
+    )
     fig = px.line(
         grouped,
         x="date",

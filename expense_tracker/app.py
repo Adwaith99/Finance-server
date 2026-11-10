@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from datetime import date
+import hashlib
+import json
 import os
 from pathlib import Path
 
@@ -9,7 +11,7 @@ import streamlit as st
 
 from expense_tracker import calculations as calc
 from expense_tracker import database as db
-from expense_tracker import import_export, plots
+from expense_tracker import import_export, plots, ai_insights, ollama_client
 
 st.set_page_config(page_title="Expense Tracker", page_icon="💸", layout="wide")
 
@@ -470,6 +472,76 @@ def render_settings_page(frame: pd.DataFrame) -> None:
         st.rerun()
 
 
+def render_ai_insights_page(frame: pd.DataFrame) -> None:
+    st.header("AI Insights")
+    st.caption("Private local analysis • Python calculates; Qwen explains • CAD")
+    period = st.selectbox("Spending period", options=list(ai_insights.PERIODS), key="ai_period")
+    summary = ai_insights.build_summary(frame, period)
+    if summary["transaction_count"] == 0:
+        st.session_state.pop("ai_result", None)
+        st.info("No recorded transactions available for analysis.")
+        return
+    st.write(f"Selected period: {summary['start']} to {summary['end']}")
+    st.caption(f"Recorded dates: {summary['first_record']} to {summary['last_record']}")
+    col1, col2, col3 = st.columns(3)
+    total = summary["expense_total"]
+    col1.metric("Recorded expenses (CAD)", format_currency(total) if total is not None else "Unknown")
+    top = summary["categories"][0] if summary["categories"] else None
+    col2.metric("Largest expense category", top["name"] if top else "Unavailable",
+                f"CAD {format_currency(top['amount'])}" if top else None, delta_color="off")
+    latest = summary["months"][-1]
+    change = latest["vs_previous"]
+    col3.metric("Latest month change (CAD)", format_currency(change["change"]) if change else "Unavailable",
+                f"{change['change_pct']:+.2f}%" if change and change["change_pct"] is not None else None,
+                delta_color="inverse")
+    for category in summary["categories"][:2]:
+        share = f" ({category['share_pct']:.2f}%)" if category["share_pct"] is not None else ""
+        st.write(f"{category['name']}: CAD {format_currency(category['amount'])}{share}")
+    st.caption(summary["caveat"])
+    if not change:
+        st.caption("Month comparison needs two full months with expense records inside the selected period. Select a longer period if needed.")
+    with st.expander("Verify calculated source statistics"):
+        st.json(summary)
+    st.caption("AI receives a compact subset: top groups and recent months. Some detail may be omitted to fit the local model.")
+    with st.expander("Preview spending-analysis prompt"):
+        st.code(ai_insights.build_prompt(summary), language="text")
+
+    # Results are tied to statistics and configuration; changes cannot display stale answers.
+    signature = hashlib.sha256(json.dumps(
+        [summary, period, {k: v for k, v in os.environ.items() if k.startswith("OLLAMA_")}],
+        sort_keys=True, ensure_ascii=False,
+    ).encode("utf-8")).hexdigest()
+    if st.session_state.get("ai_signature") != signature:
+        st.session_state.ai_signature = signature
+        st.session_state.pop("ai_result", None)
+    analyze = st.button("Analyze my spending", key="ai_analyze")
+    with st.form("ai_question_form"):
+        question = st.text_area("Ask about the selected period", max_chars=400,
+                                placeholder="Which categories could I adjust to reduce spending?")
+        ask = st.form_submit_button("Ask AI")
+    st.caption("Try: Which merchants account for the most spending? How did groceries change between recorded months?")
+    if analyze or ask:
+        if ask and not question.strip():
+            st.info("Enter a question first.")
+        else:
+            st.session_state.pop("ai_result", None)
+            try:
+                prompt = ai_insights.build_prompt(summary, question.strip()) if ask else ai_insights.build_prompt(summary)
+                with st.spinner("Analyzing with local Ollama…"):
+                    answer = ollama_client.generate(prompt)
+                st.session_state.ai_result = (question.strip() if ask else "Spending analysis", answer, prompt)
+            except (ollama_client.OllamaError, ValueError) as exc:
+                st.warning(str(exc))
+    if "ai_result" in st.session_state:
+        label, answer, prompt = st.session_state.ai_result
+        st.subheader(label)
+        # Plain text prevents untrusted model output from creating remote images or links.
+        st.text(answer)
+        with st.expander("Prompt used for this response"):
+            st.code(prompt, language="text")
+    st.caption("Ollama is contacted only when you press an AI button. Verify AI observations against the calculated statistics.")
+
+
 def main() -> None:
     db.initialize_database(DB_PATH)
     st.title("Expense Tracker 💸")
@@ -477,7 +549,7 @@ def main() -> None:
     frame = load_transactions()
     
     # Create tabs for navigation
-    tab_dashboard, tab_add, tab_transactions, tab_plots, tab_import, tab_settings = st.tabs(
+    tab_dashboard, tab_add, tab_transactions, tab_plots, tab_import, tab_settings, tab_ai = st.tabs(
         [
             "📊 Dashboard",
             "➕ Add transaction",
@@ -485,6 +557,7 @@ def main() -> None:
             "📈 Plots",
             "⬆️ Import/export",
             "⚙️ Settings",
+            "🤖 AI Insights",
         ]
     )
     
@@ -500,6 +573,8 @@ def main() -> None:
         render_import_export_page(frame)
     with tab_settings:
         render_settings_page(frame)
+    with tab_ai:
+        render_ai_insights_page(frame)
 
 
 if __name__ == "__main__":
